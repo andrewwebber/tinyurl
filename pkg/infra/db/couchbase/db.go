@@ -1,6 +1,34 @@
 package couchbase
 
-import "github.com/couchbase/gocb"
+import (
+	"errors"
+
+	"github.com/andrewwebber/tinyurl/pkg/entities"
+	"github.com/couchbase/gocb"
+)
+
+type EntitiesRepository struct {
+	db *Db
+}
+
+func NewEntitiesRepository(db *Db) *EntitiesRepository {
+	return &EntitiesRepository{db: db}
+}
+
+func (e *EntitiesRepository) Insert(key string, shortURL entities.ShortURL) error {
+	return e.db.Insert(key, &shortURL)
+}
+
+func (e *EntitiesRepository) Get(key string) (entities.ShortURL, error) {
+
+	var result entities.ShortURL
+	err := e.db.Get(key, &result)
+	return result, err
+}
+
+func (e *EntitiesRepository) IsShortURLExistsError(err error) bool {
+	return errors.Is(err, gocb.ErrKeyExists)
+}
 
 type Db struct {
 	cluster *gocb.Cluster

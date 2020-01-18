@@ -35,19 +35,27 @@ func TestInsert(t *testing.T) {
 		db.Remove(insertKey)
 	}()
 
+	er := NewEntitiesRepository(db)
 	var err error
 	url := entities.ShortURL{URL: "url", Short: "short"}
-	if err = db.Insert(insertKey, &url); err != nil {
+
+	if err = er.Insert(insertKey, url); err != nil {
 		t.Fatal(err)
 	}
 
-	if err = db.Insert(insertKey, &url); err == nil {
+	if err = er.Insert(insertKey, url); err == nil {
 		t.Fatal("expected 'key already exists' error")
 	}
 
 	if err != gocb.ErrKeyExists {
 		t.Fatal(err)
 	}
+
+	if er.IsShortURLExistsError(err) {
+		return
+	}
+
+	t.Fatalf("unexpected error - %v", err)
 }
 
 func TestGet(t *testing.T) {
@@ -57,14 +65,19 @@ func TestGet(t *testing.T) {
 		db.Remove(getKey)
 	}()
 
+	er := NewEntitiesRepository(db)
+	var err error
 	url := entities.ShortURL{URL: "url", Short: "short"}
-	if err := db.Insert(getKey, &url); err != nil {
+	if err = er.Insert(getKey, url); err != nil {
 		t.Fatal(err)
 	}
 
 	var replica entities.ShortURL
-	if err := db.Get(getKey, &replica); err != nil {
+	if replica, err = er.Get(getKey); err != nil {
 		t.Fatal(err)
 	}
 
+	if replica.Short != url.Short {
+		t.Fatalf("unexpected short url, found %s - expected %s", replica.Short, url.Short)
+	}
 }
